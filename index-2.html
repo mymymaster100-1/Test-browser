@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Browser & Productivity Suite</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+        ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 flex flex-col overflow-hidden m-0 select-none">
+
+    <!-- Top Window Controls Bar (macOS style window chrome) -->
+    <div id="window-chrome" class="bg-slate-900 border-b border-slate-800 px-4 py-2 flex items-center justify-between text-xs text-slate-400 z-50 transition-all duration-300">
+        <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
+                <button onclick="closeAppWindow()" class="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 transition flex items-center justify-center text-[8px] text-slate-950 font-bold group" title="Close"><i class="fa-solid fa-times opacity-0 group-hover:opacity-100"></i></button>
+                <button onclick="minimizeAppWindow()" class="w-3 h-3 rounded-full bg-amber-500 hover:bg-amber-600 transition flex items-center justify-center text-[8px] text-slate-950 font-bold group" title="Minimize"><i class="fa-solid fa-minus opacity-0 group-hover:opacity-100"></i></button>
+                <button onclick="toggleMaximizeWindow()" class="w-3 h-3 rounded-full bg-emerald-500 hover:bg-emerald-600 transition flex items-center justify-center text-[8px] text-slate-950 font-bold group" title="Maximize"><i class="fa-solid fa-expand opacity-0 group-hover:opacity-100"></i></button>
+            </div>
+            <span class="font-medium text-slate-300 ml-2">Nexus Pro Browser v3.5</span>
+        </div>
+
+        <!-- Multi-Tab Bar Container -->
+        <div id="tabs-container" class="flex-1 flex items-center gap-1.5 overflow-x-auto mx-4 max-w-4xl scrollbar-none">
+            <!-- Dynamically populated tabs -->
+        </div>
+
+        <button onclick="createNewTab()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center justify-center text-xs" title="New Tab (Ctrl+T)">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+
+        <div class="flex items-center gap-2 ml-3 pl-3 border-l border-slate-800">
+            <button onclick="toggleSidebar('bookmarks')" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition" title="Bookmarks Sidebar"><i class="fa-solid fa-bookmark"></i></button>
+            <button onclick="toggleSidebar('history')" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition" title="History"><i class="fa-solid fa-clock-rotate-left"></i></button>
+            <button onclick="toggleSidebar('downloads')" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition relative" title="Downloads">
+                <i class="fa-solid fa-download"></i>
+                <span id="download-badge" class="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-indigo-500 hidden"></span>
+            </button>
+            <button onclick="toggleSidebar('settings')" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition" title="Settings"><i class="fa-solid fa-gear"></i></button>
+        </div>
+    </div>
+
+    <!-- Browser Toolbar & Navigation -->
+    <header id="browser-toolbar" class="bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 flex flex-col gap-2 shadow-lg transition-all duration-300 z-40">
+        <div class="flex items-center gap-3">
+            <!-- Navigation Buttons -->
+            <div class="flex items-center gap-1">
+                <button id="back-btn" onclick="goBack()" title="Back" class="p-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition disabled:opacity-30 disabled:hover:bg-transparent">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button id="forward-btn" onclick="goForward()" title="Forward" class="p-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition disabled:opacity-30 disabled:hover:bg-transparent">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <button id="reload-btn" onclick="reloadCurrentTab()" title="Reload" class="p-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button id="home-btn" onclick="loadUrl('nexus://home')" title="Home" class="p-2 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+            </div>
+
+            <!-- URL Bar Form & Omnibox -->
+            <div class="flex-1 relative">
+                <form id="url-form" onsubmit="handleUrlSubmit(event)" class="flex items-center bg-slate-950 border border-slate-700/80 rounded-2xl px-3.5 py-2 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition shadow-inner">
+                    <button type="button" onclick="openSecurityModal()" class="flex items-center text-emerald-400 text-xs mr-2.5 hover:opacity-80 transition" title="Secure Connection Details">
+                        <i id="security-icon" class="fa-solid fa-lock"></i>
+                    </button>
+                    <input type="text" id="url-input" oninput="handleOmniboxInput(event)" onfocus="showOmniboxDropdown()" placeholder="Search Google or enter address..." class="w-full bg-transparent text-sm text-slate-200 focus:outline-none placeholder-slate-500 font-medium">
+                    
+                    <div class="flex items-center gap-2 pl-2 border-l border-slate-800 ml-2">
+                        <button type="button" id="bookmark-star-btn" onclick="toggleCurrentBookmark()" class="text-slate-400 hover:text-amber-400 transition p-1" title="Bookmark this page">
+                            <i id="star-icon" class="fa-regular fa-star"></i>
+                        </button>
+                        <button type="button" onclick="toggleReaderMode()" class="text-slate-400 hover:text-indigo-400 transition p-1" title="Toggle Reader Mode">
+                            <i class="fa-solid fa-book-open"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Omnibox Autocomplete & Suggestions Dropdown -->
+                <div id="omnibox-dropdown" class="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl py-2 z-50 hidden backdrop-blur-xl">
+                    <div class="px-3 py-1 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Suggestions & History</div>
+                    <div id="suggestions-list" class="flex flex-col">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toolbar Action Buttons -->
+            <div class="flex items-center gap-1.5">
+                <button id="fullscreen-btn" onclick="toggleImmersiveMode(true)" title="Immersive Fullscreen (Hide Toolbar - Press '/' to restore)" class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition shadow-lg shadow-indigo-600/20">
+                    <i class="fa-solid fa-expand"></i>
+                    <span class="hidden md:inline">Immersive</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Bookmarks / Popular Sites Bar -->
+        <div class="flex items-center gap-2 overflow-x-auto text-xs py-1 scrollbar-none">
+            <span class="text-slate-400 font-medium pl-1 flex items-center gap-1.5"><i class="fa-solid fa-bolt text-amber-400"></i> Quick Access:</span>
+            <button onclick="loadUrl('nexus://home')" class="quick-link px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-compass text-indigo-400"></i> Nexus Hub</button>
+            <button onclick="loadUrl('https://en.wikipedia.org')" class="quick-link px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition whitespace-nowrap flex items-center gap-1.5"><i class="fa-brands fa-wikipedia-w text-slate-200"></i> Wikipedia</button>
+            <button onclick="loadUrl('https://news.ycombinator.com')" class="quick-link px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-h text-orange-400"></i> Hacker News</button>
+            <button onclick="loadUrl('https://openstreetmap.org')" class="quick-link px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-map text-emerald-400"></i> OpenStreetMap</button>
+            <button onclick="loadUrl('nexus://notes')" class="quick-link px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-note-sticky text-amber-400"></i> Notes App</button>
+            <button onclick="loadUrl('nexus://calculator')" class="quick-link px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-calculator text-cyan-400"></i> Calculator</button>
+            <button onclick="loadUrl('nexus://weather')" class="quick-link px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl transition whitespace-nowrap flex items-center gap-1.5"><i class="fa-solid fa-cloud-sun text-yellow-400"></i> Weather</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container (Viewports & Sidebars) -->
+    <div class="flex-1 relative flex overflow-hidden">
+        
+        <!-- Browser Viewport Stack (All Tab Viewports) -->
+        <main id="viewports-container" class="flex-1 relative bg-slate-950 flex flex-col">
+            <!-- Dynamically injected iframes or built-in app views -->
+        </main>
+
+        <!-- Sidebar / Drawer Panel -->
+        <aside id="sidebar-panel" class="w-80 bg-slate-900/95 backdrop-blur-xl border-l border-slate-800 flex flex-col z-30 transition-all duration-300 transform translate-x-full absolute right-0 inset-y-0 shadow-2xl">
+            <!-- Sidebar Header -->
+            <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 id="sidebar-title" class="font-semibold text-white flex items-center gap-2"><i class="fa-solid fa-bookmark text-indigo-400"></i> Bookmarks</h3>
+                <button onclick="closeSidebar()" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"><i class="fa-solid fa-times"></i></button>
+            </div>
+            
+            <!-- Sidebar Content Body -->
+            <div id="sidebar-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+                <!-- Dynamically populated based on active panel -->
+            </div>
+        </aside>
+
+        <!-- Loading Progress Bar -->
+        <div id="loader" class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 opacity-0 z-40"></div>
+    </div>
+
+    <!-- Security Details Modal -->
+    <div id="security-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-white text-base">Connection is Secure</h3>
+                    <p class="text-xs text-slate-400">Valid SSL Certificate verified by Nexus Trust CA</p>
+                </div>
+            </div>
+            <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800/80 flex flex-col gap-2 text-xs text-slate-300">
+                <div class="flex justify-between py-1 border-b border-slate-900">
+                    <span class="text-slate-500">Protocol</span>
+                    <span class="font-mono text-emerald-400">TLS 1.3 / HTTPS</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-900">
+                    <span class="text-slate-500">Encryption</span>
+                    <span class="font-mono">AEAD_AES_256_GCM</span>
+                </div>
+                <div class="flex justify-between py-1">
+                    <span class="text-slate-500">Cookies & Trackers</span>
+                    <span class="text-indigo-400 font-medium">Blocked by Shield</span>
+                </div>
+            </div>
+            <button onclick="closeSecurityModal()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-2.5 rounded-2xl transition text-sm">Close</button>
+        </div>
+    </div>
+
+    <!-- Custom Notification Toast Box -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 border border-slate-700/80 text-slate-200 px-5 py-3 rounded-2xl shadow-2xl text-sm z-50 transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-3 backdrop-blur-xl">
+        <i id="toast-icon" class="fa-solid fa-circle-check text-indigo-400 text-base"></i>
+        <span id="toast-msg">Notification message</span>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        // --- State Management ---
+        let tabs = [];
+        let activeTabId = null;
+        let bookmarks = [
+            { title: 'Nexus Hub', url: 'nexus://home', icon: 'fa-compass' },
+            { title: 'Wikipedia', url: 'https://en.wikipedia.org', icon: 'fa-globe' },
+            { title: 'Hacker News', url: 'https://news.ycombinator.com', icon: 'fa-h' },
+            { title: 'OpenStreetMap', url: 'https://openstreetmap.org', icon: 'fa-map' },
+            { title: 'Internet Archive', url: 'https://archive.org', icon: 'fa-book-archive' },
+            { title: 'Notes App', url: 'nexus://notes', icon: 'fa-note-sticky' },
+            { title: 'Calculator', url: 'nexus://calculator', icon: 'fa-calculator' },
+            { title: 'Weather', url: 'nexus://weather', icon: 'fa-cloud-sun' }
+        ];
+        let historyList = [];
+        let downloadsList = [
+            { id: 1, name: 'nexus-browser-source.zip', size: '4.2 MB', progress: 100, status: 'Completed' },
+            { id: 2, name: 'offline-docs-v3.pdf', size: '12.8 MB', progress: 74, status: 'Downloading...' }
+        ];
+        let settings = {
+            theme: 'dark',
+            homepage: 'nexus://home',
+            adblock: true,
+            javascript: true
+        };
+        let isImmersive = false;
+        let activeSidebar = null;
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            // Load saved state if any
+            const savedBookmarks = localStorage.getItem('nexus_bookmarks');
+            if (savedBookmarks) bookmarks = JSON.parse(savedBookmarks);
+
+            const savedHistory = localStorage.getItem('nexus_history');
+            if (savedHistory) historyList = JSON.parse(savedHistory);
+
+            // Open initial tab
+            createNewTab('nexus://home');
+        });
+
+        // --- Tab Management ---
+        function createNewTab(url = 'nexus://home') {
+            const tabId = 'tab_' + Date.now() + Math.random().toString(36).substring(2, 5);
+            const newTab = {
+                id: tabId,
+                url: url,
+                title: 'New Tab',
+                history: [url],
+                historyIndex: 0,
+                readerMode: false,
+                isProxyFallback: false
+            };
+            tabs.push(newTab);
+            renderTabs();
+            switchTab(tabId);
+        }
+
+        function closeTab(tabId, event) {
+            if (event) event.stopPropagation();
+            if (tabs.length === 1) {
+                // Don't close last tab, just reset to home
+                loadUrl('nexus://home');
+                return;
+            }
+            const index = tabs.findIndex(t => t.id === tabId);
+            if (index !== -1) {
+                tabs.splice(index, 1);
+                // Remove DOM elements
+                const vp = document.getElementById('viewport_' + tabId);
+                if (vp) vp.remove();
+
+                if (activeTabId === tabId) {
+                    const newActive = tabs[Math.max(0, index - 1)];
+                    switchTab(newActive.id);
+                } else {
+                    renderTabs();
+                }
+            }
+        }
+
+        function switchTab(tabId) {
+            activeTabId = tabId;
+            renderTabs();
+
+            // Hide all viewports
+            document.querySelectorAll('.tab-viewport').forEach(el => el.classList.add('hidden'));
+            
+            // Show or create viewport for active tab
+            let viewport = document.getElementById('viewport_' + tabId);
+            if (!viewport) {
+                viewport = document.createElement('div');
+                viewport.id = 'viewport_' + tabId;
+                viewport.className = 'tab-viewport absolute inset-0 flex flex-col bg-slate-950';
+                document.getElementById('viewports-container').appendChild(viewport);
+            }
+            viewport.classList.remove('hidden');
+
+            const tab = tabs.find(t => t.id === tabId);
+            if (tab) {
+                document.getElementById('url-input').value = tab.url;
+                updateNavButtons();
+                updateBookmarkStarState(tab.url);
+                renderTabContent(tab, viewport);
+            }
+        }
+
+        function renderTabs() {
+            const container = document.getElementById('tabs-container');
+            container.innerHTML = '';
+            tabs.forEach(tab => {
+                const isActive = tab.id === activeTabId;
+                const tabEl = document.createElement('div');
+                tabEl.className = `group flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition max-w-[180px] min-w-[120px] border ${
+                    isActive 
+                        ? 'bg-slate-800 text-white border-slate-700 shadow-md' 
+                        : 'bg-slate-900/60 hover:bg-slate-800/60 text-slate-400 border-transparent hover:border-slate-800'
+                }`;
+                tabEl.onclick = () => switchTab(tab.id);
+
+                // Favicon or icon
+                let iconClass = 'fa-globe text-slate-400';
+                if (tab.url.startsWith('nexus://')) {
+                    if (tab.url.includes('home')) iconClass = 'fa-compass text-indigo-400';
+                    else if (tab.url.includes('notes')) iconClass = 'fa-note-sticky text-amber-400';
+                    else if (tab.url.includes('calculator')) iconClass = 'fa-calculator text-cyan-400';
+                    else if (tab.url.includes('weather')) iconClass = 'fa-cloud-sun text-yellow-400';
+                }
+
+                tabEl.innerHTML = `
+                    <i class="fa-solid ${iconClass} shrink-0"></i>
+                    <span class="truncate flex-1">${escapeHtml(tab.title || 'Loading...')}</span>
+                    <button onclick="closeTab('${tab.id}', event)" class="p-1 rounded-lg hover:bg-slate-700/80 text-slate-400 hover:text-white transition shrink-0"><i class="fa-solid fa-times text-[10px]"></i></button>
+                `;
+                container.appendChild(tabEl);
+            });
+        }
+
+        // --- Navigation & URL Loading ---
+        function loadUrl(targetUrl, pushHistory = true) {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab) return;
+
+            targetUrl = targetUrl.trim();
+            if (!targetUrl) return;
+
+            // Handle custom internal nexus:// protocols
+            if (targetUrl.startsWith('nexus://')) {
+                tab.url = targetUrl;
+                if (targetUrl === 'nexus://home') tab.title = 'Nexus Hub';
+                else if (targetUrl === 'nexus://notes') tab.title = 'Notes App';
+                else if (targetUrl === 'nexus://calculator') tab.title = 'Calculator';
+                else if (targetUrl === 'nexus://weather') tab.title = 'Weather Dashboard';
+                else tab.title = 'Nexus App';
+            } else {
+                if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                    if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+                        targetUrl = 'https://' + targetUrl;
+                    } else {
+                        targetUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(targetUrl);
+                    }
+                }
+                tab.url = targetUrl;
+                tab.title = extractDomain(targetUrl);
+            }
+
+            if (pushHistory) {
+                if (tab.historyIndex < tab.history.length - 1) {
+                    tab.history = tab.history.slice(0, tab.historyIndex + 1);
+                }
+                if (tab.history[tab.historyIndex] !== tab.url) {
+                    tab.history.push(tab.url);
+                    tab.historyIndex = tab.history.length - 1;
+                }
+            }
+
+            // Record to global history
+            addToHistory(tab.title, tab.url);
+
+            document.getElementById('url-input').value = tab.url;
+            updateNavButtons();
+            renderTabs();
+            updateBookmarkStarState(tab.url);
+
+            const viewport = document.getElementById('viewport_' + tab.id);
+            if (viewport) {
+                renderTabContent(tab, viewport);
+            }
+        }
+
+        function renderTabContent(tab, viewport) {
+            showLoader();
+            viewport.innerHTML = '';
+
+            if (tab.url.startsWith('nexus://')) {
+                setTimeout(() => hideLoader(), 200);
+                renderInternalApp(tab, viewport);
+                return;
+            }
+
+            // Render iframe for web pages with embedding failure fallback
+            const iframe = document.createElement('iframe');
+            iframe.className = 'w-full h-full border-0 bg-white';
+            iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-modals';
+            iframe.src = tab.url;
+
+            // Error notice overlay when embedding blocked
+            const errorOverlay = document.createElement('div');
+            errorOverlay.className = 'absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center hidden z-30';
+            errorOverlay.innerHTML = `
+                <div class="max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4">
+                    <div class="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-white">Embedding Restricted by Website</h3>
+                    <p class="text-sm text-slate-400 leading-relaxed">
+                        The website (<span class="text-indigo-400 font-mono text-xs">${escapeHtml(tab.url)}</span>) blocks being embedded inside third-party applications due to security headers (<code class="text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">X-Frame-Options</code> or <code class="text-xs bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">CSP</code>).
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2.5 w-full mt-2">
+                        <a href="${escapeHtml(tab.url)}" target="_blank" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+                            <i class="fa-solid fa-external-link-alt"></i> Open in New Tab
+                        </a>
+                        <button onclick="loadUrl('nexus://home')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium py-2.5 px-4 rounded-2xl transition">
+                            Nexus Hub
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            viewport.appendChild(iframe);
+            viewport.appendChild(errorOverlay);
+
+            iframe.onload = () => {
+                hideLoader();
+                try {
+                    const loc = iframe.contentWindow.location.href;
+                    if (loc && loc !== 'about:blank') {
+                        tab.url = loc;
+                        document.getElementById('url-input').value = loc;
+                    }
+                } catch (e) {}
+            };
+
+            // Timeout check for embedding blocks
+            setTimeout(() => {
+                hideLoader();
+            }, 2500);
+        }
+
+        // --- Internal Mini Apps / Nexus Hub Renderer ---
+        function renderInternalApp(tab, viewport) {
+            if (tab.url === 'nexus://home') {
+                viewport.innerHTML = `
+                    <div class="flex-1 overflow-y-auto bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 p-8 flex flex-col items-center justify-center text-center">
+                        <div class="max-w-2xl w-full flex flex-col items-center gap-6">
+                            <div class="w-20 h-20 rounded-3xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-4xl shadow-2xl shadow-indigo-500/20">
+                                <i class="fa-solid fa-compass"></i>
+                            </div>
+                            <div class="flex flex-col gap-2">
+                                <h1 class="text-3xl font-bold text-white tracking-tight">Nexus Web Suite</h1>
+                                <p class="text-sm text-slate-400">Ultra-sleek browser simulation with multi-tab support, offline productivity apps, and immersive browsing tools.</p>
+                            </div>
+
+                            <!-- Search bar on homepage -->
+                            <form onsubmit="handleHomeSearch(event)" class="w-full max-w-lg flex items-center bg-slate-900 border border-slate-700/80 rounded-2xl px-4 py-3 shadow-2xl focus-within:border-indigo-500 transition">
+                                <i class="fa-solid fa-magnifying-glass text-slate-400 mr-3"></i>
+                                <input type="text" id="home-search-input" placeholder="Search the web or enter URL..." class="w-full bg-transparent text-sm text-slate-200 focus:outline-none placeholder-slate-500">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium px-4 py-2 rounded-xl transition shadow-md">Search</button>
+                            </form>
+
+                            <!-- App Grid Shortcuts -->
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full mt-6">
+                                <button onclick="loadUrl('https://en.wikipedia.org')" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80 p-5 rounded-2xl flex flex-col items-center gap-3 transition group hover:border-slate-700">
+                                    <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-xl group-hover:scale-110 transition"><i class="fa-brands fa-wikipedia-w"></i></div>
+                                    <span class="text-xs font-medium text-slate-300">Wikipedia</span>
+                                </button>
+                                <button onclick="loadUrl('nexus://notes')" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80 p-5 rounded-2xl flex flex-col items-center gap-3 transition group hover:border-slate-700">
+                                    <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl group-hover:scale-110 transition"><i class="fa-solid fa-note-sticky"></i></div>
+                                    <span class="text-xs font-medium text-slate-300">Notes App</span>
+                                </button>
+                                <button onclick="loadUrl('nexus://calculator')" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80 p-5 rounded-2xl flex flex-col items-center gap-3 transition group hover:border-slate-700">
+                                    <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xl group-hover:scale-110 transition"><i class="fa-solid fa-calculator"></i></div>
+                                    <span class="text-xs font-medium text-slate-300">Calculator</span>
+                                </button>
+                                <button onclick="loadUrl('nexus://weather')" class="bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80 p-5 rounded-2xl flex flex-col items-center gap-3 transition group hover:border-slate-700">
+                                    <div class="w-12 h-12 rounded-2xl bg-yellow-500/10 text-yellow-400 flex items-center justify-center text-xl group-hover:scale-110 transition"><i class="fa-solid fa-cloud-sun"></i></div>
+                                    <span class="text-xs font-medium text-slate-300">Weather</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tab.url === 'nexus://notes') {
+                viewport.innerHTML = `
+                    <div class="flex-1 bg-slate-950 p-6 flex flex-col gap-4 overflow-y-auto">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg"><i class="fa-solid fa-note-sticky"></i></div>
+                                <h2 class="text-lg font-bold text-white">Nexus Notes & Markdown Pad</h2>
+                            </div>
+                            <button onclick="saveNote()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-medium transition shadow-md">Save Note</button>
+                        </div>
+                        <textarea id="notes-textarea" class="w-full flex-1 bg-slate-900 border border-slate-800 rounded-2xl p-4 text-slate-200 text-sm focus:outline-none focus:border-indigo-500 transition resize-none font-mono" placeholder="Type notes or markdown here... (Autosaved locally)"></textarea>
+                    </div>
+                `;
+                const savedNote = localStorage.getItem('nexus_notepad_content');
+                if (savedNote) document.getElementById('notes-textarea').value = savedNote;
+                document.getElementById('notes-textarea').addEventListener('input', (e) => {
+                    localStorage.setItem('nexus_notepad_content', e.target.value);
+                });
+            } else if (tab.url === 'nexus://calculator') {
+                viewport.innerHTML = `
+                    <div class="flex-1 bg-slate-950 p-6 flex flex-col items-center justify-center">
+                        <div class="max-w-xs w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl flex flex-col gap-4">
+                            <div class="flex items-center justify-between text-slate-400 text-xs px-1">
+                                <span>Nexus Calc</span>
+                                <i class="fa-solid fa-calculator text-cyan-400"></i>
+                            </div>
+                            <div id="calc-display" class="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-right text-2xl font-mono font-bold text-white tracking-wider truncate">0</div>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button onclick="calcClear()" class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 py-3 rounded-xl font-bold text-sm transition">C</button>
+                                <button onclick="calcAppend('/')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold text-sm transition">&divide;</button>
+                                <button onclick="calcAppend('*')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold text-sm transition">&times;</button>
+                                <button onclick="calcAppend('-')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold text-sm transition">&minus;</button>
+                                <button onclick="calcAppend('7')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">7</button>
+                                <button onclick="calcAppend('8')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">8</button>
+                                <button onclick="calcAppend('9')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">9</button>
+                                <button onclick="calcAppend('+')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl font-bold text-sm transition">+</button>
+                                <button onclick="calcAppend('4')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">4</button>
+                                <button onclick="calcAppend('5')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">5</button>
+                                <button onclick="calcAppend('6')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">6</button>
+                                <button onclick="calcCompute()" class="bg-indigo-600 hover:bg-indigo-500 text-white py-7 row-span-2 rounded-xl font-bold text-lg transition flex items-center justify-center">=</button>
+                                <button onclick="calcAppend('1')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">1</button>
+                                <button onclick="calcAppend('2')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">2</button>
+                                <button onclick="calcAppend('3')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">3</button>
+                                <button onclick="calcAppend('0')" class="bg-slate-800/60 hover:bg-slate-800 text-white col-span-2 py-3 rounded-xl font-bold text-sm transition">0</button>
+                                <button onclick="calcAppend('.')" class="bg-slate-800/60 hover:bg-slate-800 text-white py-3 rounded-xl font-bold text-sm transition">.</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (tab.url === 'nexus://weather') {
+                viewport.innerHTML = `
+                    <div class="flex-1 bg-slate-950 p-8 flex flex-col items-center justify-center">
+                        <div class="max-w-md w-full bg-gradient-to-br from-slate-900 to-indigo-950/60 border border-slate-800 rounded-3xl p-8 shadow-2xl flex flex-col gap-6 text-center">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Live Weather Station</span>
+                                <i class="fa-solid fa-cloud-sun text-yellow-400 text-xl"></i>
+                            </div>
+                            <div class="flex flex-col items-center gap-2">
+                                <h2 class="text-2xl font-bold text-white">Saint Paul, MN</h2>
+                                <p class="text-5xl font-extrabold text-white tracking-tight my-2">72°F</p>
+                                <p class="text-sm text-indigo-300 font-medium">Partly Cloudy & Pleasant</p>
+                            </div>
+                            <div class="grid grid-cols-3 gap-3 border-t border-slate-800 pt-5">
+                                <div class="bg-slate-950/60 p-3 rounded-2xl flex flex-col gap-1">
+                                    <span class="text-[10px] text-slate-500 uppercase font-semibold">Humidity</span>
+                                    <span class="text-sm font-bold text-slate-200">48%</span>
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-2xl flex flex-col gap-1">
+                                    <span class="text-[10px] text-slate-500 uppercase font-semibold">Wind</span>
+                                    <span class="text-sm font-bold text-slate-200">8 mph</span>
+                                </div>
+                                <div class="bg-slate-950/60 p-3 rounded-2xl flex flex-col gap-1">
+                                    <span class="text-[10px] text-slate-500 uppercase font-semibold">Air Quality</span>
+                                    <span class="text-sm font-bold text-emerald-400">Good</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // --- Calculator Logic ---
+        let calcVal = '0';
+        function calcAppend(char) {
+            if (calcVal === '0' && char !== '.') calcVal = char;
+            else calcVal += char;
+            const disp = document.getElementById('calc-display');
+            if (disp) disp.textContent = calcVal;
+        }
+        function calcClear() {
+            calcVal = '0';
+            const disp = document.getElementById('calc-display');
+            if (disp) disp.textContent = calcVal;
+        }
+        function calcCompute() {
+            try {
+                calcVal = eval(calcVal).toString();
+                const disp = document.getElementById('calc-display');
+                if (disp) disp.textContent = calcVal;
+            } catch(e) {
+                calcVal = 'Error';
+                const disp = document.getElementById('calc-display');
+                if (disp) disp.textContent = calcVal;
+                setTimeout(() => calcClear(), 1500);
+            }
+        }
+
+        function saveNote() {
+            showToast('Note successfully saved locally!');
+        }
+
+        function handleHomeSearch(e) {
+            e.preventDefault();
+            const val = document.getElementById('home-search-input').value;
+            if (val) loadUrl(val);
+        }
+
+        // --- Navigation Controls ---
+        function goBack() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && tab.historyIndex > 0) {
+                tab.historyIndex--;
+                loadUrl(tab.history[tab.historyIndex], false);
+            }
+        }
+
+        function goForward() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && tab.historyIndex < tab.history.length - 1) {
+                tab.historyIndex++;
+                loadUrl(tab.history[tab.historyIndex], false);
+            }
+        }
+
+        function reloadCurrentTab() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) loadUrl(tab.url, false);
+        }
+
+        function updateNavButtons() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab) return;
+            document.getElementById('back-btn').disabled = tab.historyIndex <= 0;
+            document.getElementById('forward-btn').disabled = tab.historyIndex >= tab.history.length - 1;
+        }
+
+        function handleUrlSubmit(e) {
+            e.preventDefault();
+            const val = document.getElementById('url-input').value;
+            loadUrl(val);
+            hideOmniboxDropdown();
+        }
+
+        // --- Omnibox Autocomplete & Suggestions ---
+        function handleOmniboxInput(e) {
+            const query = e.target.value.toLowerCase();
+            const list = document.getElementById('suggestions-list');
+            list.innerHTML = '';
+
+            if (!query) {
+                hideOmniboxDropdown();
+                return;
+            }
+
+            showOmniboxDropdown();
+
+            // Filter bookmarks & history
+            const matches = bookmarks.filter(b => b.title.toLowerCase().includes(query) || b.url.toLowerCase().includes(query));
+            
+            if (matches.length === 0) {
+                list.innerHTML = `
+                    <div onclick="loadUrl('${escapeHtml(e.target.value)}')" class="px-4 py-2 hover:bg-slate-800 text-xs text-slate-300 cursor-pointer flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-indigo-400"></i>
+                        <span>Search web for <strong class="text-white">"${escapeHtml(e.target.value)}"</strong></span>
+                    </div>
+                `;
+                return;
+            }
+
+            matches.slice(0, 5).forEach(m => {
+                const item = document.createElement('div');
+                item.className = 'px-4 py-2 hover:bg-slate-800 text-xs text-slate-300 cursor-pointer flex items-center gap-3 transition';
+                item.innerHTML = `
+                    <i class="fa-solid ${m.icon || 'fa-bookmark'} text-indigo-400"></i>
+                    <div class="flex flex-col truncate">
+                        <span class="font-medium text-white">${escapeHtml(m.title)}</span>
+                        <span class="text-[10px] text-slate-500 truncate">${escapeHtml(m.url)}</span>
+                    </div>
+                `;
+                item.onclick = () => {
+                    loadUrl(m.url);
+                    hideOmniboxDropdown();
+                };
+                list.appendChild(item);
+            });
+        }
+
+        function showOmniboxDropdown() {
+            document.getElementById('omnibox-dropdown').classList.remove('hidden');
+        }
+
+        function hideOmniboxDropdown() {
+            setTimeout(() => {
+                document.getElementById('omnibox-dropdown').classList.add('hidden');
+            }, 200);
+        }
+
+        // --- Bookmarks Management ---
+        function toggleCurrentBookmark() {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!tab) return;
+
+            const existingIndex = bookmarks.findIndex(b => b.url === tab.url);
+            if (existingIndex !== -1) {
+                bookmarks.splice(existingIndex, 1);
+                showToast('Bookmark removed');
+            } else {
+                bookmarks.push({ title: tab.title, url: tab.url, icon: 'fa-bookmark' });
+                showToast('Page bookmarked successfully');
+            }
+            localStorage.setItem('nexus_bookmarks', JSON.stringify(bookmarks));
+            updateBookmarkStarState(tab.url);
+            if (activeSidebar === 'bookmarks') renderSidebarContent();
+        }
+
+        function updateBookmarkStarState(url) {
+            const starIcon = document.getElementById('star-icon');
+            const isBookmarked = bookmarks.some(b => b.url === url);
+            if (isBookmarked) {
+                starIcon.className = 'fa-solid fa-star text-amber-400';
+            } else {
+                starIcon.className = 'fa-regular fa-star text-slate-400';
+            }
+        }
+
+        // --- History Management ---
+        function addToHistory(title, url) {
+            historyList.unshift({ title, url, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+            if (historyList.length > 50) historyList.pop();
+            localStorage.setItem('nexus_history', JSON.stringify(historyList));
+        }
+
+        // --- Sidebar Drawers ---
+        function toggleSidebar(type) {
+            const sidebar = document.getElementById('sidebar-panel');
+            if (activeSidebar === type && !sidebar.classList.contains('translate-x-full')) {
+                closeSidebar();
+                return;
+            }
+            activeSidebar = type;
+            sidebar.classList.remove('translate-x-full');
+            renderSidebarContent();
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar-panel').classList.add('translate-x-full');
+            activeSidebar = null;
+        }
+
+        function renderSidebarContent() {
+            const titleEl = document.getElementById('sidebar-title');
+            const contentEl = document.getElementById('sidebar-content');
+            contentEl.innerHTML = '';
+
+            if (activeSidebar === 'bookmarks') {
+                titleEl.innerHTML = '<i class="fa-solid fa-bookmark text-indigo-400"></i> Bookmarks Manager';
+                if (bookmarks.length === 0) {
+                    contentEl.innerHTML = '<p class="text-xs text-slate-500 text-center py-8">No saved bookmarks yet.</p>';
+                    return;
+                }
+                bookmarks.forEach((b, idx) => {
+                    const el = document.createElement('div');
+                    el.className = 'flex items-center justify-between p-3 bg-slate-950/60 hover:bg-slate-950 rounded-2xl border border-slate-800 transition group';
+                    el.innerHTML = `
+                        <div class="flex items-center gap-3 truncate cursor-pointer flex-1" onclick="loadUrl('${escapeHtml(b.url)}')">
+                            <i class="fa-solid ${b.icon || 'fa-bookmark'} text-indigo-400"></i>
+                            <div class="flex flex-col truncate">
+                                <span class="text-xs font-medium text-white truncate">${escapeHtml(b.title)}</span>
+                                <span class="text-[10px] text-slate-500 truncate">${escapeHtml(b.url)}</span>
+                            </div>
+                        </div>
+                        <button onclick="removeBookmark(${idx})" class="p-1.5 text-slate-500 hover:text-rose-400 transition"><i class="fa-solid fa-trash text-xs"></i></button>
+                    `;
+                    contentEl.appendChild(el);
+                });
+            } else if (activeSidebar === 'history') {
+                titleEl.innerHTML = '<i class="fa-solid fa-clock-rotate-left text-purple-400"></i> Browsing History';
+                if (historyList.length === 0) {
+                    contentEl.innerHTML = '<p class="text-xs text-slate-500 text-center py-8">No history recorded yet.</p>';
+                    return;
+                }
+                historyList.forEach(h => {
+                    const el = document.createElement('div');
+                    el.className = 'flex items-center justify-between p-3 bg-slate-950/60 hover:bg-slate-950 rounded-2xl border border-slate-800 transition cursor-pointer';
+                    el.innerHTML = `
+                        <div class="flex flex-col truncate flex-1" onclick="loadUrl('${escapeHtml(h.url)}')">
+                            <span class="text-xs font-medium text-white truncate">${escapeHtml(h.title)}</span>
+                            <span class="text-[10px] text-slate-500 truncate">${escapeHtml(h.url)}</span>
+                        </div>
+                        <span class="text-[10px] text-slate-600 ml-2 font-mono">${escapeHtml(h.time)}</span>
+                    `;
+                    contentEl.appendChild(el);
+                });
+            } else if (activeSidebar === 'downloads') {
+                titleEl.innerHTML = '<i class="fa-solid fa-download text-emerald-400"></i> Downloads Manager';
+                downloadsList.forEach(d => {
+                    const el = document.createElement('div');
+                    el.className = 'flex flex-col gap-2 p-3.5 bg-slate-950/60 rounded-2xl border border-slate-800';
+                    el.innerHTML = `
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-medium text-white truncate">${escapeHtml(d.name)}</span>
+                            <span class="text-[10px] text-slate-400">${escapeHtml(d.size)}</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div class="bg-indigo-500 h-full rounded-full transition-all duration-300" style="width: ${d.progress}%"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-[10px] text-slate-500">
+                            <span>${escapeHtml(d.status)}</span>
+                            <span>${d.progress}%</span>
+                        </div>
+                    `;
+                    contentEl.appendChild(el);
+                });
+            } else if (activeSidebar === 'settings') {
+                titleEl.innerHTML = '<i class="fa-solid fa-gear text-cyan-400"></i> Browser Settings';
+                contentEl.innerHTML = `
+                    <div class="flex flex-col gap-4 text-xs">
+                        <div class="flex items-center justify-between p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
+                            <div>
+                                <h4 class="font-medium text-white">Ad & Tracker Shield</h4>
+                                <p class="text-[10px] text-slate-500">Block intrusive ads and telemetry</p>
+                            </div>
+                            <input type="checkbox" checked class="accent-indigo-600 w-4 h-4 rounded cursor-pointer">
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
+                            <div>
+                                <h4 class="font-medium text-white">JavaScript Engine</h4>
+                                <p class="text-[10px] text-slate-500">Allow scripts in web viewports</p>
+                            </div>
+                            <input type="checkbox" checked class="accent-indigo-600 w-4 h-4 rounded cursor-pointer">
+                        </div>
+                        <div class="flex flex-col gap-1.5 p-3 bg-slate-950/60 rounded-2xl border border-slate-800">
+                            <h4 class="font-medium text-white">Theme Accent</h4>
+                            <select class="bg-slate-900 border border-slate-700 text-slate-300 rounded-xl p-2 focus:outline-none">
+                                <option>Deep Obsidian (Dark)</option>
+                                <option>Midnight Indigo</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function removeBookmark(idx) {
+            bookmarks.splice(idx, 1);
+            localStorage.setItem('nexus_bookmarks', JSON.stringify(bookmarks));
+            renderSidebarContent();
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) updateBookmarkStarState(tab.url);
+            showToast('Bookmark removed');
+        }
+
+        // --- Loader Indicator ---
+        function showLoader() {
+            const loader = document.getElementById('loader');
+            loader.style.width = '30%';
+            loader.style.opacity = '1';
+            setTimeout(() => { loader.style.width = '70%'; }, 300);
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('loader');
+            loader.style.width = '100%';
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                loader.style.width = '0%';
+            }, 300);
+        }
+
+        // --- Immersive Fullscreen Mode ---
+        function toggleImmersiveMode(activate) {
+            isImmersive = activate;
+            const toolbar = document.getElementById('browser-toolbar');
+            const chrome = document.getElementById('window-chrome');
+
+            if (isImmersive) {
+                toolbar.style.transform = 'translateY(-100%)';
+                toolbar.style.opacity = '0';
+                toolbar.style.pointerEvents = 'none';
+                toolbar.style.position = 'absolute';
+                
+                chrome.style.transform = 'translateY(-100%)';
+                chrome.style.opacity = '0';
+                chrome.style.pointerEvents = 'none';
+                chrome.style.position = 'absolute';
+            } else {
+                toolbar.style.transform = 'translateY(0)';
+                toolbar.style.opacity = '1';
+                toolbar.style.pointerEvents = 'auto';
+                toolbar.style.position = 'relative';
+
+                chrome.style.transform = 'translateY(0)';
+                chrome.style.opacity = '1';
+                chrome.style.pointerEvents = 'auto';
+                chrome.style.position = 'relative';
+            }
+        }
+
+        // --- Key Listeners & Shortcuts ---
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== document.getElementById('url-input') && !['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+                e.preventDefault();
+                toggleImmersiveMode(false);
+                document.getElementById('url-input').focus();
+            }
+            if (e.ctrlKey && e.key.toLowerCase() === 't') {
+                e.preventDefault();
+                createNewTab('nexus://home');
+            }
+            if (e.ctrlKey && e.key.toLowerCase() === 'w') {
+                e.preventDefault();
+                closeTab(activeTabId);
+            }
+        });
+
+        // --- Window Action Simulation ---
+        function closeAppWindow() {
+            showToast('Nexus Browser window closed. Refresh to restart.');
+        }
+        function minimizeAppWindow() {
+            showToast('Window minimized to dock.');
+        }
+        function toggleMaximizeWindow() {
+            showToast('Window toggled fullscreen.');
+        }
+
+        // --- Security Modal ---
+        function openSecurityModal() {
+            document.getElementById('security-modal').classList.remove('hidden');
+        }
+        function closeSecurityModal() {
+            document.getElementById('security-modal').classList.add('hidden');
+        }
+
+        // --- Toast Notification ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // --- Helper Utilities ---
+        function extractDomain(url) {
+            try {
+                const parsed = new URL(url);
+                return parsed.hostname.replace('www.', '');
+            } catch(e) {
+                return url;
+            }
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
