@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immersive HTML5 Browser</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-slate-100 flex flex-col overflow-hidden m-0">
+
+    <!-- Browser Header / Toolbar -->
+    <header id="browser-toolbar" class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex flex-col gap-2 shadow-md transition-all duration-300 z-50">
+        <div class="flex items-center gap-3">
+            <!-- Window / Browser Controls -->
+            <div class="flex items-center gap-1.5 text-slate-400">
+                <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            </div>
+
+            <div class="h-4 w-px bg-slate-700 mx-1"></div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex items-center gap-1">
+                <button id="back-btn" title="Back" class="p-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition disabled:opacity-30 disabled:hover:bg-transparent">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button id="forward-btn" title="Forward" class="p-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition disabled:opacity-30 disabled:hover:bg-transparent">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+                <button id="reload-btn" title="Reload" class="p-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+                <button id="home-btn" title="Home" class="p-2 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition">
+                    <i class="fa-solid fa-house"></i>
+                </button>
+            </div>
+
+            <!-- URL Bar Form -->
+            <form id="url-form" class="flex-1 flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 transition">
+                <i class="fa-solid fa-lock text-emerald-400 text-xs mr-2.5"></i>
+                <input type="text" id="url-input" placeholder="Enter URL (https://...) or search term..." class="w-full bg-transparent text-sm text-slate-200 focus:outline-none placeholder-slate-500">
+                <button type="submit" class="text-slate-400 hover:text-white px-1 text-sm">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+            </form>
+
+            <!-- Toolbar Action Buttons -->
+            <div class="flex items-center gap-1.5">
+                <button id="fullscreen-btn" title="Immersive Fullscreen (Hide Toolbar)" class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl text-sm font-medium transition shadow-sm">
+                    <i class="fa-solid fa-expand"></i>
+                    <span class="hidden md:inline">Immersive</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Bookmarks / Popular Sites Bar -->
+        <div class="flex items-center gap-2 overflow-x-auto text-xs py-1 scrollbar-none">
+            <span class="text-slate-400 font-medium pl-1 flex items-center gap-1"><i class="fa-regular fa-star text-amber-400"></i> Quick:</span>
+            <button onclick="loadUrl('https://wikipedia.org')" class="quick-link px-2.5 py-1 bg-slate-700/60 hover:bg-slate-700 text-slate-300 rounded-lg transition whitespace-nowrap">Wikipedia</button>
+            <button onclick="loadUrl('https://openstreetmap.org')" class="quick-link px-2.5 py-1 bg-slate-700/60 hover:bg-slate-700 text-slate-300 rounded-lg transition whitespace-nowrap">OpenStreetMap</button>
+            <button onclick="loadUrl('https://archive.org')" class="quick-link px-2.5 py-1 bg-slate-700/60 hover:bg-slate-700 text-slate-300 rounded-lg transition whitespace-nowrap">Internet Archive</button>
+            <button onclick="loadUrl('https://news.ycombinator.com')" class="quick-link px-2.5 py-1 bg-slate-700/60 hover:bg-slate-700 text-slate-300 rounded-lg transition whitespace-nowrap">Hacker News</button>
+            <button onclick="loadUrl('https://example.com')" class="quick-link px-2.5 py-1 bg-slate-700/60 hover:bg-slate-700 text-slate-300 rounded-lg transition whitespace-nowrap">Example.com</button>
+        </div>
+    </header>
+
+    <!-- Floating Immersive Exit Reminder Badge -->
+    <div id="immersive-badge" class="fixed top-4 right-4 bg-slate-900/90 border border-slate-700 text-slate-200 px-4 py-2 rounded-xl shadow-2xl z-[100] hidden items-center gap-3 backdrop-blur-md animate-bounce">
+        <span class="flex h-2.5 w-2.5 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+        </span>
+        <span class="text-xs font-medium">Immersive Mode Active. Press <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-600 rounded text-amber-400 font-mono font-bold">/</kbd> to reveal toolbar.</span>
+        <button id="exit-immersive-badge-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg transition border border-slate-700">Exit</button>
+    </div>
+
+    <!-- Viewport Container (Browser Content) -->
+    <main class="flex-1 relative bg-slate-950 flex flex-col">
+        <!-- Main Browser Iframe -->
+        <iframe id="browser-frame" src="https://example.com" class="w-full h-full border-0 bg-white" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"></iframe>
+
+        <!-- X-Frame-Options / Embedding Error Fallback Notice -->
+        <div id="embed-error-notice" class="absolute inset-0 bg-slate-950/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center hidden z-30">
+            <div class="max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-2xl">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white">Embedding Restricted by Website</h3>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    The website (<span id="error-url" class="text-indigo-400 font-mono text-xs"></span>) blocks being embedded inside third-party apps due to security policies (<code class="text-xs bg-slate-800 px-1 py-0.5 rounded text-slate-300">X-Frame-Options</code> or <code class="text-xs bg-slate-800 px-1 py-0.5 rounded text-slate-300">CSP</code>).
+                </p>
+                <div class="flex flex-col sm:flex-row gap-2.5 w-full mt-2">
+                    <a id="direct-open-link" href="#" target="_blank" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-external-link-alt"></i> Open in New Tab
+                    </a>
+                    <button onclick="loadUrl('https://example.com')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium py-2.5 px-4 rounded-xl transition">
+                        Go Home
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner Indicator -->
+        <div id="loader" class="absolute top-0 left-0 right-0 h-1 bg-indigo-500 transition-all duration-300 opacity-0 z-40"></div>
+    </main>
+
+    <!-- Custom Notification Toast Box -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 border border-slate-700 text-slate-200 px-4 py-2.5 rounded-xl shadow-2xl text-sm z-50 transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2">
+        <i id="toast-icon" class="fa-solid fa-info-circle text-indigo-400"></i>
+        <span id="toast-msg">Notification message</span>
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        const toolbar = document.getElementById('browser-toolbar');
+        const frame = document.getElementById('browser-frame');
+        const urlInput = document.getElementById('url-input');
+        const urlForm = document.getElementById('url-form');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const immersiveBadge = document.getElementById('immersive-badge');
+        const exitBadgeBtn = document.getElementById('exit-immersive-badge-btn');
+        const embedErrorNotice = document.getElementById('embed-error-notice');
+        const errorUrlSpan = document.getElementById('error-url');
+        const directOpenLink = document.getElementById('direct-open-link');
+        const loader = document.getElementById('loader');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-msg');
+
+        let historyStack = [];
+        let historyIndex = -1;
+        let isImmersive = false;
+        let loadTimeout = null;
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            toastMsg.textContent = message;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // Normalize and load URL into iframe
+        function loadUrl(rawUrl, pushHistory = true) {
+            embedErrorNotice.classList.add('hidden');
+            let targetUrl = rawUrl.trim();
+
+            if (!targetUrl) return;
+
+            // Check if it's a search query or domain name
+            if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+                if (targetUrl.includes('.') && !targetUrl.includes(' ')) {
+                    targetUrl = 'https://' + targetUrl;
+                } else {
+                    targetUrl = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(targetUrl);
+                }
+            }
+
+            urlInput.value = targetUrl;
+            showLoader();
+
+            // Handle history stack
+            if (pushHistory) {
+                if (historyIndex < historyStack.length - 1) {
+                    historyStack = historyStack.slice(0, historyIndex + 1);
+                }
+                if (historyStack[historyIndex] !== targetUrl) {
+                    historyStack.push(targetUrl);
+                    historyIndex = historyStack.length - 1;
+                }
+            }
+            updateNavButtons();
+
+            // Set iframe source
+            frame.src = targetUrl;
+
+            // Timeout check for sites that fail to load or block embedding
+            clearTimeout(loadTimeout);
+            loadTimeout = setTimeout(() => {
+                hideLoader();
+            }, 2500);
+        }
+
+        function showLoader() {
+            loader.style.width = '30%';
+            loader.style.opacity = '1';
+            setTimeout(() => { loader.style.width = '70%'; }, 400);
+        }
+
+        function hideLoader() {
+            loader.style.width = '100%';
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                loader.style.width = '0%';
+            }, 300);
+        }
+
+        frame.addEventListener('load', () => {
+            hideLoader();
+            try {
+                // If the iframe successfully loads a page on the same origin or permits inspection
+                // (Note: cross-origin frames throw DOMException when accessing frame.contentWindow.location)
+                const loc = frame.contentWindow.location.href;
+                if (loc && loc !== 'about:blank') {
+                    if (urlInput.value !== loc) {
+                        urlInput.value = loc;
+                    }
+                }
+            } catch (e) {
+                // Cross-origin restriction is normal for most external websites
+            }
+        });
+
+        // Error detection fallback when iframe fails to render or blocks embedding
+        frame.addEventListener('error', () => {
+            hideLoader();
+            showEmbedError(urlInput.value);
+        });
+
+        function showEmbedError(url) {
+            errorUrlSpan.textContent = url;
+            directOpenLink.href = url;
+            embedErrorNotice.classList.remove('hidden');
+        }
+
+        // Navigation controls
+        document.getElementById('back-btn').addEventListener('click', () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                loadUrl(historyStack[historyIndex], false);
+            }
+        });
+
+        document.getElementById('forward-btn').addEventListener('click', () => {
+            if (historyIndex < historyStack.length - 1) {
+                historyIndex++;
+                loadUrl(historyStack[historyIndex], false);
+            }
+        });
+
+        document.getElementById('reload-btn').addEventListener('click', () => {
+            loadUrl(urlInput.value, false);
+        });
+
+        document.getElementById('home-btn').addEventListener('click', () => {
+            loadUrl('https://example.com');
+        });
+
+        function updateNavButtons() {
+            document.getElementById('back-btn').disabled = historyIndex <= 0;
+            document.getElementById('forward-btn').disabled = historyIndex >= historyStack.length - 1;
+        }
+
+        // URL Form submit
+        urlForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            loadUrl(urlInput.value);
+        });
+
+        // Toggle Immersive Fullscreen Mode
+        function toggleImmersiveMode(activate) {
+            isImmersive = activate;
+            if (isImmersive) {
+                toolbar.style.transform = 'translateY(-100%)';
+                toolbar.style.opacity = '0';
+                toolbar.style.pointerEvents = 'none';
+                toolbar.style.position = 'absolute';
+                toolbar.style.width = '100%';
+                immersiveBadge.classList.remove('hidden');
+                immersiveBadge.classList.add('flex');
+                showToast('Entered Immersive Mode. Press "/" to reveal toolbar.');
+            } else {
+                toolbar.style.transform = 'translateY(0)';
+                toolbar.style.opacity = '1';
+                toolbar.style.pointerEvents = 'auto';
+                toolbar.style.position = 'relative';
+                immersiveBadge.classList.add('hidden');
+                immersiveBadge.classList.remove('flex');
+            }
+        }
+
+        fullscreenBtn.addEventListener('click', () => {
+            toggleImmersiveMode(true);
+        });
+
+        exitBadgeBtn.addEventListener('click', () => {
+            toggleImmersiveMode(false);
+        });
+
+        // Global Key Listener: Press '/' key to bring back the toolbar and exit immersive mode
+        window.addEventListener('keydown', (e) => {
+            // Check if '/' is pressed and user is not currently typing in an input field
+            if (e.key === '/' && document.activeElement !== urlInput) {
+                e.preventDefault();
+                toggleImmersiveMode(false);
+                urlInput.focus();
+                showToast('Toolbar revealed via "/" key.');
+            }
+            // Also support F11 or Escape shortcut guidance
+            if (e.key === 'F11' && !isImmersive) {
+                e.preventDefault();
+                toggleImmersiveMode(true);
+            }
+        });
+
+        // Initial load
+        loadUrl('https://example.com');
+    </script>
+</body>
+</html>
